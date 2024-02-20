@@ -45,6 +45,7 @@ class Ontology(pronto.Ontology):
         self,
         source: Optional[str] = None,
         include_id_prefixes: Optional[Dict[str, List[str]]] = None,
+        include_rel: Optional[str] = None,
     ):
         """Convert pronto.Ontology to a DataFrame with columns id, name, parents."""
 
@@ -90,17 +91,20 @@ class Ontology(pronto.Ontology):
                 synonyms = None  # type:ignore
 
             # get 1st degree parents as a list
+            superclasses = [
+                s.id
+                for s in term.superclasses(distance=1, with_self=False).to_set()
+            ]
+            if include_rel is not None:
+                if include_rel in [i.name for i in term1.relationships]:
+                    superclasses.extend([s.id for s in term.objects(obj.get_relationship('contained'))])
             if prefix_list is not None:
                 superclasses = [
-                    s.id
-                    for s in term.superclasses(distance=1, with_self=False).to_set()
-                    if s.id.startswith(tuple(prefix_list))
-                ]
-            else:
-                superclasses = [
-                    s.id
-                    for s in term.superclasses(distance=1, with_self=False).to_set()
-                ]
+                    s
+                    for s in superclasses
+                    if s.startswith(tuple(prefix_list))
+                ]                
+
 
             df_values.append((term.id, term.name, definition, synonyms, superclasses))
 
